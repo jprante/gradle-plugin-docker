@@ -77,7 +77,6 @@ class DockerPlugin implements Plugin<Project> {
 
         PublishArtifact dockerArtifact = new ArchivePublishArtifact(dockerfileZip)
         Configuration dockerConfiguration = project.getConfigurations().getByName('docker')
-        dockerConfiguration.getArtifacts().add(dockerArtifact)
         project.getComponents().add(new DockerComponent(dockerArtifact, dockerConfiguration.getAllDependencies(),
                 objectFactory, attributesFactory))
 
