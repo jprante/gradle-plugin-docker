@@ -1,0 +1,156 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'groovy'
+    id 'maven'
+    id 'signing'
+    id 'com.gradle.plugin-publish' version '0.9.10'
+    id "io.codearte.nexus-staging" version "0.11.0"
+}
+
+task banner {
+    doFirst {
+        printf "Host: %s\nOS: %s %s %s\nJVM: %s %s %s %s\nGradle: %s Groovy: %s Java: %s\n" +
+                "Build: group: ${project.group} name: ${project.name} version: ${project.version}\n",
+                InetAddress.getLocalHost(),
+                System.getProperty("os.name"),
+                System.getProperty("os.arch"),
+                System.getProperty("os.version"),
+                System.getProperty("java.version"),
+                System.getProperty("java.vm.version"),
+                System.getProperty("java.vm.vendor"),
+                System.getProperty("java.vm.name"),
+                gradle.gradleVersion,
+                GroovySystem.getVersion(),
+                JavaVersion.current()
+        if (!JavaVersion.current().java11Compatible) {
+            println "WARNING: no Java 11 found. You will run into problems."
+        }
+    }
+}
+
+tasks.compileJava.dependsOn('banner')
+
+configurations {
+    wagon
+}
+
+dependencies {
+    compileOnly gradleApi()
+    compileOnly "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
+    testCompile gradleTestKit()
+    testCompile "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
+    testCompile("org.spockframework:spock-core:${project.property('spock.version')}") {
+        exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+    }
+    wagon "org.apache.maven.wagon:wagon-ssh:${project.property('wagon.version')}"
+
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier 'sources'
+}
+
+if (project.hasProperty('gradle.publish.key')) {
+  pluginBundle {
+    website = 'https://github.com/jprante/gradle-plugin-docker'
+    vcsUrl = 'https://github.com/jprante/gradle-plugin-docker'
+    description = 'Gradle Docker Plugin executes docker build and push from within Gradle'
+    tags = ['gradle', 'docker']
+    plugins {
+        dockerPlugin {
+            id = 'org.xbib.gradle.plugin.docker'
+            displayName = 'Gradle Docker Plugin'
+        }
+    }
+  }
+}
+
+
+if (project.hasProperty('signing.keyId')) {
+    signing {
+        sign configurations.archives
+    }
+}
+
+ext {
+    user = 'jprante'
+    projectName = 'gradle-plugin-docker'
+    projectDescription = 'Docker plugin for Gradle'
+    scmUrl = 'https://github.com/' + user + '/' + name
+    scmConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
+    scmDeveloperConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
+}
+
+task xbibUpload(type: Upload, dependsOn: build) {
+    group = 'publish'
+    configuration = configurations.archives
+    uploadDescriptor = true
+    repositories {
+        if (project.hasProperty('xbibUsername')) {
+            mavenDeployer {
+                configuration = configurations.wagon
+                repository(url: uri(project.property('xbibUrl'))) {
+                    authentication(userName: xbibUsername, privateKey: xbibPrivateKey)
+                }
+            }
+        }
+    }
+}
+
+
+task sonatypeUpload(type: Upload, dependsOn: build) {
+    group = 'publish'
+    configuration = configurations.archives
+    uploadDescriptor = true
+    repositories {
+        if (project.hasProperty('ossrhUsername')) {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+                repository(url: uri(ossrhReleaseUrl)) {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+                snapshotRepository(url: uri(ossrhSnapshotUrl)) {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+                pom.project {
+                    groupId project.group
+                    artifactId project.name
+                    version project.version
+                    name project.name
+                    description projectDescription
+                    packaging 'jar'
+                    inceptionYear '2018'
+                    url scmUrl
+                    organization {
+                        name 'xbib'
+                        url 'http://xbib.org'
+                    }
+                    developers {
+                        developer {
+                            id user
+                            name 'Jörg Prante'
+                            email 'joergprante@gmail.com'
+                            url 'https://github.com/jprante'
+                        }
+                    }
+                    scm {
+                        url scmUrl
+                        connection scmConnection
+                        developerConnection scmDeveloperConnection
+                    }
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+nexusStaging {
+    packageGroup = "org.xbib"
+}
