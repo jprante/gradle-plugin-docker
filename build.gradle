@@ -3,7 +3,7 @@ plugins {
     id 'groovy'
     id 'maven'
     id 'signing'
-    id 'com.gradle.plugin-publish' version '0.9.10'
+    id 'com.gradle.plugin-publish' version '0.10.1'
     id "io.codearte.nexus-staging" version "0.11.0"
 }
 
@@ -46,9 +46,28 @@ dependencies {
 
 }
 
-task sourceJar(type: Jar) {
+task sourcesJar(type: Jar) {
+    classifier 'sources' // for sonatype validation
     from sourceSets.main.allSource
-    classifier 'sources'
+}
+
+groovydoc {
+    docTitle = description
+}
+
+task groovydocJar(type: Jar, dependsOn: 'groovydoc') {
+    classifier = 'javadoc' // for sonatype validation
+    from groovydoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar, groovydocJar
+}
+
+if (project.hasProperty('signing.keyId')) {
+    signing {
+        sign configurations.archives
+    }
 }
 
 if (project.hasProperty('gradle.publish.key')) {
@@ -66,12 +85,6 @@ if (project.hasProperty('gradle.publish.key')) {
   }
 }
 
-
-if (project.hasProperty('signing.keyId')) {
-    signing {
-        sign configurations.archives
-    }
-}
 
 ext {
     user = 'jprante'
