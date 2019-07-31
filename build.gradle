@@ -7,47 +7,17 @@ plugins {
     id "io.codearte.nexus-staging" version "0.11.0"
 }
 
-task banner {
-    doFirst {
-        printf "Host: %s\nOS: %s %s %s\nJVM: %s %s %s %s\nGradle: %s Groovy: %s Java: %s\n" +
-                "Build: group: ${project.group} name: ${project.name} version: ${project.version}\n",
-                InetAddress.getLocalHost(),
-                System.getProperty("os.name"),
-                System.getProperty("os.arch"),
-                System.getProperty("os.version"),
-                System.getProperty("java.version"),
-                System.getProperty("java.vm.version"),
-                System.getProperty("java.vm.vendor"),
-                System.getProperty("java.vm.name"),
-                gradle.gradleVersion,
-                GroovySystem.getVersion(),
-                JavaVersion.current()
-        if (!JavaVersion.current().java11Compatible) {
-            println "WARNING: no Java 11 found. You will run into problems."
-        }
-    }
-}
-
-tasks.compileJava.dependsOn('banner')
-
-configurations {
-    wagon
-}
-
 dependencies {
     compileOnly gradleApi()
     compileOnly "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
     testCompile gradleTestKit()
     testCompile "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
-    testCompile("org.spockframework:spock-core:${project.property('spock.version')}") {
-        exclude group: 'org.codehaus.groovy', module: 'groovy-all'
-    }
-    wagon "org.apache.maven.wagon:wagon-ssh:${project.property('wagon.version')}"
-
+    testCompile "org.hamcrest:hamcrest-all:${project.property('hamcrest.version')}"
+    testCompile "org.mockito:mockito-core:${project.property('mockito.version')}"
 }
 
 task sourcesJar(type: Jar) {
-    classifier 'sources' // for sonatype validation
+    classifier 'sources'
     from sourceSets.main.allSource
 }
 
@@ -56,18 +26,12 @@ groovydoc {
 }
 
 task groovydocJar(type: Jar, dependsOn: 'groovydoc') {
-    classifier = 'javadoc' // for sonatype validation
+    classifier 'javadoc'
     from groovydoc.destinationDir
 }
 
 artifacts {
     archives sourcesJar, groovydocJar
-}
-
-if (project.hasProperty('signing.keyId')) {
-    signing {
-        sign configurations.archives
-    }
 }
 
 if (project.hasProperty('gradle.publish.key')) {
@@ -85,32 +49,14 @@ if (project.hasProperty('gradle.publish.key')) {
   }
 }
 
-
 ext {
     user = 'jprante'
     projectName = 'gradle-plugin-docker'
     projectDescription = 'Docker plugin for Gradle'
-    scmUrl = 'https://github.com/' + user + '/' + name
-    scmConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
-    scmDeveloperConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
+    scmUrl = 'https://github.com/jprante/gradle-plugin-docker'
+    scmConnection = 'scm:git:git://github.com/jprante/gradle-plugin-docker.git'
+    scmDeveloperConnection = 'scm:git:git://github.com/jprante/gradle-plugin-docker.git'
 }
-
-task xbibUpload(type: Upload, dependsOn: build) {
-    group = 'publish'
-    configuration = configurations.archives
-    uploadDescriptor = true
-    repositories {
-        if (project.hasProperty('xbibUsername')) {
-            mavenDeployer {
-                configuration = configurations.wagon
-                repository(url: uri(project.property('xbibUrl'))) {
-                    authentication(userName: xbibUsername, privateKey: xbibPrivateKey)
-                }
-            }
-        }
-    }
-}
-
 
 task sonatypeUpload(type: Upload, dependsOn: build) {
     group = 'publish'
@@ -130,7 +76,7 @@ task sonatypeUpload(type: Upload, dependsOn: build) {
                     groupId project.group
                     artifactId project.name
                     version project.version
-                    name project.name
+                    name projectName
                     description projectDescription
                     packaging 'jar'
                     inceptionYear '2018'
