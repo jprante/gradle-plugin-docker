@@ -1,18 +1,21 @@
 package org.xbib.gradle.plugin.docker
 
+import java.nio.file.Files
+import java.nio.file.Path
+
 class Dockerfile {
 
-    private final List<String> instructions
+    final List<String> instructions
 
-    private final File contextDir
+    final File contextDir
 
-    private final List<Closure> stagingBacklog
+    final List<Closure> stagingBacklog
 
-    private final Closure copyCallback
+    final Closure copyCallback
 
-    private final Object resolvePathCallback
+    final Object resolvePathCallback
 
-    private List<String> baseInstructions
+    List<String> baseInstructions
 
     Dockerfile(File contextDir) {
         this(contextDir, { String path -> new File(path) }, { -> })
@@ -32,7 +35,7 @@ class Dockerfile {
         this
     }
 
-    Dockerfile appendAll(List<String> instructions) {
+    Dockerfile appendAll(List instructions) {
         instructions.addAll(instructions*.toString())
         this
     }
@@ -140,7 +143,7 @@ class Dockerfile {
     }
 
     private void createTarArchive(File tarFile, Closure copySpec) {
-        final tmpDir = Files.createTempDir()
+        Path tmpDir = Files.createTempDirectory('gradle-plugin-docker')
         try {
             copyCallback {
                 with {
@@ -148,9 +151,9 @@ class Dockerfile {
                         with copySpec
                     }
                 }
-                into tmpDir
+                into tmpDir.toFile()
             }
-            new AntBuilder().tar(destfile: tarFile, basedir: tmpDir)
+            new AntBuilder().tar(destfile: tarFile, basedir: tmpDir.toFile())
         } finally {
             tmpDir.deleteDir()
         }

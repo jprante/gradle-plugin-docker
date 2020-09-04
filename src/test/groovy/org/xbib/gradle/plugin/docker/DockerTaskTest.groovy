@@ -1,7 +1,6 @@
 package org.xbib.gradle.plugin.docker
 
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Rule
 import org.junit.Test
@@ -44,21 +43,21 @@ class DockerTaskTest {
     @Test
     void testExposePort() {
         def task = createTask(createProject())
-        task.exposePort(99)
+        task.dockerfile.expose(99)
         assertThat task.buildDockerfile().instructions[1], equalTo('EXPOSE 99')
     }
 
     @Test
     void testExposeMultiplePorts() {
         def task = createTask(createProject())
-        task.exposePort(99, 100, 101)
+        task.dockerfile.expose(99, 100, 101)
         assertThat task.buildDockerfile().instructions[1], equalTo('EXPOSE 99 100 101')
     }
 
     @Test
     void testExposePortUdp() {
         def task = createTask(createProject())
-        task.exposePort("162/udp")
+        task.dockerfile.expose("162/udp")
         assertThat task.buildDockerfile().instructions[1], equalTo('EXPOSE 162/udp')
     }
 
@@ -92,7 +91,7 @@ class DockerTaskTest {
         URL dir_url = getClass().getResource(TEST_TARGET_DIR)
         File dir = new File(dir_url.toURI())
         assertThat(dir.isDirectory(), equalTo(true))
-        task.addFile(dir)
+        task.dockerfile.add(dir)
         task.setupStageDir()
         File targetDir = new File(task.stageDir, TEST_TARGET_DIR)
         assertThat(targetDir.exists(), is(true))
@@ -110,7 +109,7 @@ class DockerTaskTest {
         }
         task.dockerfile externalDockerfile
         task.maintainer = TEST_MAINTAINER
-        task.setEnvironment(*TEST_ENV)
+        task.dockerfile.env(*TEST_ENV)
         def actual = task.buildDockerfile().instructions
         assertThat(actual, contains(*TEST_INSTRUCTIONS,
                         "ENV ${TEST_ENV.join(' ')}".toString(),
@@ -120,21 +119,21 @@ class DockerTaskTest {
     @Test
     void switchUser() {
         def task = createTask(createProject())
-        task.switchUser('junit')
+        task.dockerfile.user('junit')
         assertThat "USER junit".toString(), isIn(task.buildDockerfile().instructions)
     }
 
     @Test
     void defineLabel() {
        def task = createTask(createProject())
-       task.label(foo: 'bar')
+       task.dockerfile.label(foo: 'bar')
        assertThat 'LABEL "foo"="bar"', isIn(task.buildDockerfile().instructions)
     }
 
     @Test
     void defineMultipleLabels() {
        def task = createTask(createProject())
-       task.label(foo1: 'bar1', foo2: 'bar2')
+       task.dockerfile.label(foo1: 'bar1', foo2: 'bar2')
        assertThat 'LABEL "foo1"="bar1" "foo2"="bar2"', isIn(task.buildDockerfile().instructions)
     }
 
@@ -144,7 +143,7 @@ class DockerTaskTest {
         project
     }
 
-    private static Task createTask(Project project) {
-        project.task(TASK_NAME, type: DockerBuildTask).configure()
+    private static DockerBuildTask createTask(Project project) {
+        project.task(TASK_NAME, type: DockerBuildTask).configure() as DockerBuildTask
     }
 }

@@ -11,8 +11,10 @@ class CommandLineDockerClient implements DockerClient {
     }
 
     @Override
-    String buildImage(File buildDir, String tag, boolean pull) {
-        def cmdLine = [binary, "build", "--pull=${pull}", "-t", tag, buildDir.toString() ]
+    String buildImage(File buildDir, String tag, Boolean pull) {
+        def cmdLine = pull ?
+                [binary, "build", "--pull=${pull}", "-t", tag, buildDir.toString() ] :
+                [binary, "build", "-t", tag, buildDir.toString()]
         executeAndWait(cmdLine)
     }
 
@@ -32,7 +34,7 @@ class CommandLineDockerClient implements DockerClient {
     }
 
     @Override
-    String run(String tag, String containerName, boolean detached, boolean autoRemove, 
+    String run(String tag, String containerName, Boolean detached, Boolean autoRemove,
             Map<String, String> env,
             Map<String, String> ports, Map<String, String> volumes, List<String> volumesFrom,
             List<String> links) {

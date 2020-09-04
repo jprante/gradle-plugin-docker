@@ -9,7 +9,7 @@ interface DockerClient {
      * @param pull wether to pull latest image or not, true enables the pull, false disables pull
      * @return the output of the command
      */
-    String buildImage(File buildDir, String tag, boolean pull)
+    String buildImage(File buildDir, String tag, Boolean pull)
     
     /**
      * Push the given image to the configured Docker registry.
@@ -33,7 +33,7 @@ interface DockerClient {
      * @param links a list of the containers to which the newly created container should be linked
      * @return the output of the command
      */
-    String run(String tag, String containerName, boolean detached, boolean autoRemove,
+    String run(String tag, String containerName, Boolean detached, Boolean autoRemove,
             Map<String, String> env, Map<String, String> ports, Map<String, String> volumes, 
             List<String> volumesFrom, List<String> links)
 }

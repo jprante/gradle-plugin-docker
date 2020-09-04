@@ -5,7 +5,6 @@ import org.gradle.api.tasks.TaskAction
 import org.xbib.gradle.plugin.docker.DockerClient
 import org.xbib.gradle.plugin.docker.DockerPlugin
 import org.xbib.gradle.plugin.docker.Dockerfile
-import org.xbib.gradle.plugin.docker.LegacyDockerfileMethods
 
 class DockerBuildTask extends DockerTaskBase {
 
@@ -27,9 +26,6 @@ class DockerBuildTask extends DockerTaskBase {
 
     File stageDir
 
-    @Delegate(deprecated=true)
-    LegacyDockerfileMethods legacyMethods
-
     DockerBuildTask() {
         instructions = []
         stageDir = new File(project.buildDir, "docker")
@@ -40,7 +36,6 @@ class DockerBuildTask extends DockerTaskBase {
         def resolveClosure = { path -> project.file(path) }
         def copyClosure = { Closure copyClosure -> project.copy(copyClosure) }
         this.dockerfile = new Dockerfile(stageDir, resolveClosure, copyClosure)
-        this.legacyMethods = new LegacyDockerfileMethods(dockerfile)
         super.configure(configureClosure)
     }
 
@@ -64,18 +59,14 @@ class DockerBuildTask extends DockerTaskBase {
         baseImage ? baseImage : DEFAULT_IMAGE
     }
 
-    void contextDir(String contextDir) {
-        stageDir = new File(stageDir, contextDir)
-    }
-
-    protected void setupStageDir() {
+    void setupStageDir() {
         if (!stageDir.exists()) {
             stageDir.mkdirs()
         }
         dockerfile.stagingBacklog.each() { closure -> closure() }
     }
 
-    protected Dockerfile buildDockerfile() {
+    Dockerfile buildDockerfile() {
         if (!dockerfile.hasBase()) {
             dockerfile.from(getBaseImage())
         }

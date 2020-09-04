@@ -1,14 +1,12 @@
 package org.xbib.gradle.plugin.docker
 
 import org.xbib.gradle.plugin.docker.task.DockerTaskBase
-
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Test
-
 import static org.hamcrest.Matchers.equalToIgnoringCase
 import static org.hamcrest.Matchers.isA
-import static org.junit.Assert.assertThat
+import static org.hamcrest.MatcherAssert.assertThat
 
 class DockerTaskBaseTest {
 

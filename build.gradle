@@ -1,21 +1,55 @@
 plugins {
+    id "de.marcphilipp.nexus-publish" version "0.4.0"
+    id "io.codearte.nexus-staging" version "0.21.1"
     id 'java-gradle-plugin'
     id 'groovy'
-    id 'maven'
-    id 'signing'
     id 'com.gradle.plugin-publish' version '0.10.1'
-    id "io.codearte.nexus-staging" version "0.11.0"
 }
+
+wrapper {
+    gradleVersion = "${project.property('gradle.wrapper.version')}"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+ext {
+    user = 'jprante'
+    name = 'gradle-plugin-docker'
+    description = 'Docker support in a Gradle plugin'
+    inceptionYear = '2016'
+    url = 'https://github.com/' + user + '/' + name
+    scmUrl = 'https://github.com/' + user + '/' + name
+    scmConnection = 'scm:git:git://github.com/' + user + '/' + name + '.git'
+    scmDeveloperConnection = 'scm:git:ssh://git@github.com:' + user + '/' + name + '.git'
+    issueManagementSystem = 'Github'
+    issueManagementUrl = ext.scmUrl + '/issues'
+    licenseName = 'The Apache License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+}
+
+apply plugin: 'java-library'
+apply from: rootProject.file('gradle/ide/idea.gradle')
+apply from: rootProject.file('gradle/compile/java.gradle')
+apply from: rootProject.file('gradle/test/junit5.gradle')
+apply from: rootProject.file('gradle/publishing/sonatype.gradle')
 
 dependencies {
-    compileOnly gradleApi()
-    compileOnly "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
-    testCompile gradleTestKit()
-    testCompile "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
-    testCompile "org.hamcrest:hamcrest-all:${project.property('hamcrest.version')}"
-    testCompile "org.mockito:mockito-core:${project.property('mockito.version')}"
+    api gradleApi()
+    implementation "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
+    testImplementation gradleTestKit()
+    //testImplementation "org.hamcrest:hamcrest-all:${project.property('hamcrest.version')}"
+    testImplementation "org.mockito:mockito-core:${project.property('mockito.version')}"
 }
 
+compileGroovy {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+compileTestGroovy {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+/*
 task sourcesJar(type: Jar) {
     classifier 'sources'
     from sourceSets.main.allSource
@@ -32,84 +66,35 @@ task groovydocJar(type: Jar, dependsOn: 'groovydoc') {
 
 artifacts {
     archives sourcesJar, groovydocJar
+}*/
+
+validatePlugins {
+    failOnWarning = false
 }
+
+gradlePlugin {
+    plugins {
+        dockerPlugin {
+            id = 'org.xbib.gradle.plugin.docker'
+            implementationClass = 'org.xbib.gradle.plugin.docker.DockerPlugin'
+        }
+    }
+}
+
 
 if (project.hasProperty('gradle.publish.key')) {
   pluginBundle {
     website = 'https://github.com/jprante/gradle-plugin-docker'
     vcsUrl = 'https://github.com/jprante/gradle-plugin-docker'
-    description = 'Gradle Docker Plugin executes docker build and push from within Gradle'
-    tags = ['gradle', 'docker']
     plugins {
         dockerPlugin {
             id = 'org.xbib.gradle.plugin.docker'
+            version = project.version
+            description = rootProject.ext.description
+            displayName = rootProject.ext.description
             displayName = 'Gradle Docker Plugin'
+            tags = ['gradle', 'docker']
         }
     }
   }
-}
-
-ext {
-    user = 'jprante'
-    projectName = 'gradle-plugin-docker'
-    projectDescription = 'Docker plugin for Gradle'
-    scmUrl = 'https://github.com/jprante/gradle-plugin-docker'
-    scmConnection = 'scm:git:git://github.com/jprante/gradle-plugin-docker.git'
-    scmDeveloperConnection = 'scm:git:git://github.com/jprante/gradle-plugin-docker.git'
-}
-
-task sonatypeUpload(type: Upload, dependsOn: build) {
-    group = 'publish'
-    configuration = configurations.archives
-    uploadDescriptor = true
-    repositories {
-        if (project.hasProperty('ossrhUsername')) {
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-                repository(url: uri(ossrhReleaseUrl)) {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-                snapshotRepository(url: uri(ossrhSnapshotUrl)) {
-                    authentication(userName: ossrhUsername, password: ossrhPassword)
-                }
-                pom.project {
-                    groupId project.group
-                    artifactId project.name
-                    version project.version
-                    name projectName
-                    description projectDescription
-                    packaging 'jar'
-                    inceptionYear '2018'
-                    url scmUrl
-                    organization {
-                        name 'xbib'
-                        url 'http://xbib.org'
-                    }
-                    developers {
-                        developer {
-                            id user
-                            name 'Jörg Prante'
-                            email 'joergprante@gmail.com'
-                            url 'https://github.com/jprante'
-                        }
-                    }
-                    scm {
-                        url scmUrl
-                        connection scmConnection
-                        developerConnection scmDeveloperConnection
-                    }
-                    licenses {
-                        license {
-                            name 'The Apache License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-nexusStaging {
-    packageGroup = "org.xbib"
 }
