@@ -26,19 +26,23 @@ class DockerPlugin implements Plugin<Project> {
         project.tasks.withType(DockerBuildTask) { DockerBuildTask buildTask ->
             project.tasks.assemble.dependsOn(buildTask)
             buildTask.executableName.set(project.provider { extension.executableName })
-            buildTask.imageName.set(project.provider { extension.fullImageName })
         }
         project.afterEvaluate {
             project.tasks.withType(DockerBuildTask) { DockerBuildTask buildTask ->
-                buildTask.tags.each { buildTag ->
-                    String taskName = pushTaskName(buildTask.imageName.get(), buildTag)
-                    def pushTask = project.task(taskName, type: DockerPushTask) {
-                        imageName.set(project.provider { buildTask.imageName.get() })
-                        tag.set(project.provider { buildTag })
+                buildTask.with {
+                    if (extension.registry) {
+                        imageName.set("${extension.registry}/${imageName.get()}")
                     }
-                    pushTask.dependsOn(buildTask)
-                    project.tasks.publish.dependsOn(pushTask)
+                    commandLine it.buildCommandLine()
                 }
+                String pushTaskName = pushTaskName(buildTask)
+                def pushTask = project.task(pushTaskName, type: DockerPushTask) {
+                    executableName.set(project.provider { buildTask.executableName.get() })
+                    imageName.set(project.provider { buildTask.imageName.get() })
+                    tag.set(project.provider { buildTag })
+                }
+                pushTask.dependsOn(buildTask)
+                project.tasks.publish.dependsOn(pushTask)
             }
         }
     }
@@ -50,8 +54,11 @@ class DockerPlugin implements Plugin<Project> {
         }
     }
 
-    private static String pushTaskName(String imageName, String buildTag) {
-        return "push" + clean(imageName).capitalize() + clean(buildTag)
+    private static String pushTaskName(DockerBuildTask task) {
+
+        return "push" +
+                task.imageName.isPresent() ? clean(task.imageName.get()).capitalize() : '' +
+                task.tag.isPresent() ? clean(task.tag.get()) : ''
     }
 
     private static String clean(String string) {

@@ -1,10 +1,11 @@
 package org.xbib.gradle.plugin.docker
 
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.AbstractExecTask
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.Input
 
-class DockerPushTask extends AbstractExecTask {
+class DockerPushTask extends Exec {
 
     @Input
     final Property<String> executableName
@@ -16,7 +17,6 @@ class DockerPushTask extends AbstractExecTask {
     final Property<String> tag
 
     DockerPushTask() {
-        super(DockerPushTask)
         executableName = project.getObjects().property(String)
         imageName = project.getObjects().property(String)
         tag = project.getObjects().property(String)
@@ -24,7 +24,8 @@ class DockerPushTask extends AbstractExecTask {
 
     @Override
     void exec() {
-        executable(executableName.get())
+        environment super.getEnvironment()
+        executable executableName.get().toString()
         args 'push', "${imageName.get()}${tag.get() ? ":${tag.get()}" : ''}"
         super.exec()
     }
