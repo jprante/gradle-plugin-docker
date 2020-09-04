@@ -1,12 +1,17 @@
 package org.xbib.gradle.plugin.docker
 
+import groovy.transform.CompileStatic
+
+@CompileStatic
 class DockerPluginExtension {
 
-    String maintainer
-
-    String baseImage
+    String executableName = "docker"
 
     String registry
 
-    String dockerBinaryPath
+    String imageName
+
+    String getFullImageName() {
+        registry ? "$registry/$imageName" : imageName
+    }
 }

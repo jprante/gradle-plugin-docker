@@ -1,5 +1,6 @@
-This implementation is a fork of the Palantir Docker Plugin at https://github.com/palantir/gradle-docker
-with a reset of the version numbering scheme. The three plugins were combined into one, the Guava dependency was removed,
-and it was ensured to build and run under Java 11 and Gradle 5. The package structure and documentation
-have been adjusted; references to original authors and versions have been removed
-for clarity and consistency.
+
+This work is derived from
+
+https://github.com/Itiviti/gradle-docker-build-plugin
+
+(Apache License 2.0)

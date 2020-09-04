@@ -3,7 +3,7 @@ plugins {
     id "io.codearte.nexus-staging" version "0.21.1"
     id 'java-gradle-plugin'
     id 'groovy'
-    id 'com.gradle.plugin-publish' version '0.10.1'
+    id 'com.gradle.plugin-publish' version '0.11.0'
 }
 
 wrapper {
@@ -37,7 +37,7 @@ dependencies {
     implementation "org.codehaus.groovy:groovy-all:${project.property('groovy.version')}"
     testImplementation gradleTestKit()
     //testImplementation "org.hamcrest:hamcrest-all:${project.property('hamcrest.version')}"
-    testImplementation "org.mockito:mockito-core:${project.property('mockito.version')}"
+    //testImplementation "org.mockito:mockito-core:${project.property('mockito.version')}"
 }
 
 compileGroovy {
