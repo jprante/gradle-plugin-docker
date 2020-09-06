@@ -1,9 +1,14 @@
 package org.xbib.gradle.plugin.docker
 
-import java.nio.file.Files
-import java.nio.file.Path
+import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 
 class Dockerfile {
+
+    private static final Logger logger = Logging.getLogger(Dockerfile)
+
+    final Project project
 
     final List<String> instructions
 
@@ -13,18 +18,12 @@ class Dockerfile {
 
     final Closure copyCallback
 
-    final Object resolvePathCallback
-
     List<String> baseInstructions
 
-    Dockerfile(File workingDir) {
-        this(workingDir, { String path -> new File(path) }, { -> })
-    }
-
-    Dockerfile(File workingDir, resolvePathCallback, copyCallback) {
+    Dockerfile(Project project, File workingDir) {
+        this.project = project
         this.workingDir = workingDir
-        this.resolvePathCallback = resolvePathCallback
-        this.copyCallback = copyCallback
+        this.copyCallback = { Closure copyClosure -> project.copy(copyClosure) }
         this.baseInstructions = []
         this.instructions = []
         this.stagingBacklog = []
@@ -35,6 +34,10 @@ class Dockerfile {
             return callWithLowerCaseName(name, args)
         }
         append("${name.toUpperCase()} ${args.join(' ')}")
+    }
+
+    File file(Object name) {
+        project.file(name)
     }
 
     Dockerfile append(def instruction) {
@@ -76,18 +79,6 @@ class Dockerfile {
         append('ENTRYPOINT ["' + cmd.join('", "') + '"]')
     }
 
-    void add(URL source, String destination='/') {
-        append("ADD ${source.toString()} ${destination}")
-    }
-
-    void add(String source, String destination='/') {
-        if(isUrl(source)) {
-            append("ADD ${source} ${destination}")
-        } else {
-            add(resolvePathCallback(source), destination)
-        }
-    }
-
     void add(File source, String destination='/') {
         File target
         if (source.isDirectory()) {
@@ -96,25 +87,16 @@ class Dockerfile {
         else {
             target = workingDir
         }
-        stagingBacklog.add { ->
-            copyCallback {
-                from source
-                into target
+        if (source.absoluteFile != target.absoluteFile) {
+            logger.info "source = ${source} target = ${target}"
+            stagingBacklog.add { ->
+                copyCallback {
+                    from source
+                    into target
+                }
             }
         }
         append("ADD ${source.name} ${destination}")
-    }
-
-    void add(Closure copySpec) {
-        File tarFile = new File(workingDir, "add_${instructions.size()+1}.tar")
-        stagingBacklog.add { ->
-            createTarArchive(tarFile, copySpec)
-        }
-        instructions.add("ADD ${tarFile.name} ${'/'}")
-    }
-
-    void copy(String source, String destination='/') {
-        copy(resolvePathCallback(source), destination)
     }
 
     void copy(File source, String destination='/') {
@@ -125,44 +107,21 @@ class Dockerfile {
         else {
             target = workingDir
         }
-        stagingBacklog.add { ->
-            copyCallback {
-                from source
-                into target
-            }
-        }
-        this.append("COPY ${source.name} ${destination}")
-    }
-
-    void copy(Closure copySpec) {
-        File tarFile = new File(workingDir, "copy_${instructions.size()+1}.tar")
-        stagingBacklog.add { ->
-            createTarArchive(tarFile, copySpec)
-        }
-        instructions.add("COPY ${tarFile.name} ${'/'}")
-    }
-
-    private void createTarArchive(File tarFile, Closure copySpec) {
-        Path tmpDir = Files.createTempDirectory('gradle-plugin-docker')
-        try {
-            copyCallback {
-                with {
-                    into('/') {
-                        with copySpec
-                    }
+        if (source.absoluteFile != target.absoluteFile) {
+            stagingBacklog.add { ->
+                copyCallback {
+                    from source
+                    into target
                 }
-                into tmpDir.toFile()
             }
-            new AntBuilder().tar(destfile: tarFile, basedir: tmpDir.toFile())
-        } finally {
-            tmpDir.deleteDir()
         }
+        append("COPY ${source.name} ${destination}")
     }
 
     void label(Map labels) {
-         if(labels) {
-             instructions.add("LABEL " + labels.collect { k,v -> "\"$k\"=\"$v\"" }.join(' '))
-         }
+        if (labels) {
+            instructions.add("LABEL " + labels.collect { k,v -> "\"$k\"=\"$v\"" }.join(' '))
+        }
     }
 
     List<String> getInstructions() {
@@ -171,14 +130,5 @@ class Dockerfile {
 
     boolean hasBase() {
         baseInstructions.size() > 0
-    }
-
-    private static boolean isUrl(String url) {
-        try {
-            new URL(url)
-        } catch (MalformedURLException e) {
-            return false
-        }
-        return true;
     }
 }

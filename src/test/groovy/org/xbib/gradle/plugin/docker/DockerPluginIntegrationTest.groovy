@@ -37,14 +37,12 @@ plugins {
     id 'org.xbib.gradle.plugin.docker'
 }
 
-docker {
-  registry = 'localhost'
-}
-
 task myDockerBuild(type: DockerBuildTask) {
+  registry = 'localhost'
   imageName = 'mytestimage'
   dockerfile {
-      add('settings.gradle','/')
+      add(file('settings.gradle'), '/')
+      add(new File('/etc/hosts'), '/')
   }
 }
 '''
@@ -52,9 +50,9 @@ task myDockerBuild(type: DockerBuildTask) {
         BuildResult result = GradleRunner.create()
                 .withProjectDir(projectDir)
                 .withPluginClasspath()
-                .withArguments(":build", "--info", "--stacktrace")
+                .withArguments(":myDockerBuild", "--info", "--stacktrace")
                 .forwardOutput()
                 .build()
-        assertEquals(TaskOutcome.SUCCESS, result.task(":build").getOutcome())
+        assertEquals(TaskOutcome.SUCCESS, result.task(":myDockerBuild").getOutcome())
     }
 }

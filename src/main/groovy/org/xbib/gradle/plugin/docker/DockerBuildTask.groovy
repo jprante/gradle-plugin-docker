@@ -1,22 +1,16 @@
 package org.xbib.gradle.plugin.docker
 
-import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.Optional
 
 class DockerBuildTask extends Exec {
 
-    @Input
-    final Property<String> executableName
-
-    @Input
-    final Property<String> imageName
-
-    @Input
-    @Optional
-    final Property<String> tag
+    @Delegate
+    @Nested
+    DockerExtension dockerExtension
 
     @InputDirectory
     File basePath = new File('.')
@@ -27,7 +21,7 @@ class DockerBuildTask extends Exec {
 
     @Input
     @Optional
-    List<String> instructions
+    List<String> instructions = []
 
     @Input
     @Optional
@@ -37,21 +31,16 @@ class DockerBuildTask extends Exec {
     @Optional
     String maintainer
 
-    Dockerfile dockerfile
+    private Dockerfile dockerfile
 
     DockerBuildTask() {
-        this.executableName = project.getObjects().property(String)
-        this.imageName = project.getObjects().property(String)
-        this.tag = project.getObjects().property(String)
-        this.instructions = []
-        def resolveClosure = { path -> project.file(path) }
-        def copyClosure = { Closure copyClosure -> project.copy(copyClosure) }
+        this.dockerExtension = project.extensions.findByName('docker') as DockerExtension
         File file = new File(project.buildDir, 'docker-' + name)
         if (!file.exists()) {
             file.mkdirs()
         }
-        this.dockerfile = new Dockerfile(file, resolveClosure, copyClosure)
-        setWorkingDir(file)
+        this.dockerfile = new Dockerfile(project, file)
+        setWorkingDir(dockerfile.workingDir)
     }
 
     void dockerfile(Closure closure) {
@@ -66,8 +55,15 @@ class DockerBuildTask extends Exec {
         dockerfile.extendDockerfile(baseFile)
     }
 
-    List<String> buildCommandLine() {
-        dockerfile.stagingBacklog.each() { closure -> closure() }
+    @Override
+    void exec() {
+        File file = createDockerFile()
+        executeStagingBacklog()
+        commandLine buildCommandLine(file)
+        super.exec()
+    }
+
+    private File createDockerFile() {
         if (!dockerfile.hasBase()) {
             dockerfile.from(baseImage ? baseImage : 'scratch')
         }
@@ -78,17 +74,26 @@ class DockerBuildTask extends Exec {
             dockerfile.appendAll(instructions)
         }
         File file = new File(workingDir, 'Dockerfile')
-        if (!file.exists()) {
-            dockerfile.writeToFile(file)
+        dockerfile.writeToFile(file)
+        logger.info "${dockerfile.instructions}"
+        file
+    }
+
+    private void executeStagingBacklog() {
+        dockerfile.stagingBacklog.each() { closure -> closure() }
+    }
+
+    private List<String> buildCommandLine(File dockerfilename) {
+        List<String> list = [ executableName, 'build', basePath.path ]
+        list << '-f' << dockerfilename.absoluteFile.toString()
+        String fullImageName = imageName
+        if (registry) {
+            fullImageName = "${registry}/${imageName}".toString()
         }
-        List<String> list = [ executableName.get().toString(), 'build', basePath.path ]
-        list << '-f' << file.getName()
-        String name = imageName.getOrElse('empty')
-        if (tag.isPresent()) {
-            list << '-t' << "${name}:${tag.get()}".toString()
-        } else {
-            list << '-t' << "${name}".toString()
+        if (tag) {
+            fullImageName = "${fullImageName}:${tag}".toString()
         }
+        list << '-t' << fullImageName
         buildArgs.each {
             list << '--build-arg' << it
         }

@@ -1,32 +1,33 @@
 package org.xbib.gradle.plugin.docker
 
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Nested
 
 class DockerPushTask extends Exec {
 
-    @Input
-    final Property<String> executableName
-
-    @Input
-    final Property<String> imageName
-
-    @Input
-    final Property<String> tag
+    @Delegate
+    @Nested
+    DockerExtension dockerExtension
 
     DockerPushTask() {
-        executableName = project.getObjects().property(String)
-        imageName = project.getObjects().property(String)
-        tag = project.getObjects().property(String)
     }
 
     @Override
     void exec() {
-        environment super.getEnvironment()
-        executable executableName.get().toString()
-        args 'push', "${imageName.get()}${tag.get() ? ":${tag.get()}" : ''}"
+        commandLine buildCommandLine()
         super.exec()
+    }
+
+    private List<String> buildCommandLine() {
+        List<String> list = [ executableName, 'push' ]
+        String fullImageName = imageName
+        if (registry) {
+            fullImageName = "${registry}/${imageName}".toString()
+        }
+        if (tag) {
+            fullImageName = "${fullImageName}:${tag}".toString()
+        }
+        list <<  fullImageName.toString()
+        list
     }
 }
