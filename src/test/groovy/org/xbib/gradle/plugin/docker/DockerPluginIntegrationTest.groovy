@@ -38,6 +38,7 @@ plugins {
 }
 
 task myDockerBuild(type: DockerBuildTask) {
+  enabled = true
   registry = 'localhost'
   imageName = 'mytestimage'
   dockerfile {
@@ -45,6 +46,7 @@ task myDockerBuild(type: DockerBuildTask) {
       add(new File('/etc/hosts'), '/')
   }
 }
+
 '''
         buildFile.write(buildFileContent)
         BuildResult result = GradleRunner.create()

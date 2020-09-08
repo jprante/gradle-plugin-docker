@@ -10,6 +10,7 @@ class DockerPushTask extends Exec {
     DockerExtension dockerExtension
 
     DockerPushTask() {
+        this.dockerExtension = project.extensions.findByName('docker') as DockerExtension
     }
 
     @Override

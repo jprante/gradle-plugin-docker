@@ -57,10 +57,12 @@ class DockerBuildTask extends Exec {
 
     @Override
     void exec() {
-        File file = createDockerFile()
-        executeStagingBacklog()
-        commandLine buildCommandLine(file)
-        super.exec()
+        if (enabled) {
+            File file = createDockerFile()
+            executeStagingBacklog()
+            commandLine buildCommandLine(file)
+            super.exec()
+        }
     }
 
     private File createDockerFile() {

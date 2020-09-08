@@ -6,7 +6,6 @@ import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.BasePlugin
-import org.gradle.api.publish.plugins.PublishingPlugin
 import org.gradle.util.GradleVersion
 
 class DockerPlugin implements Plugin<Project> {
@@ -19,7 +18,6 @@ class DockerPlugin implements Plugin<Project> {
         logger.info "Docker plugin says hello"
         project.with {
             plugins.apply(BasePlugin)
-            plugins.apply(PublishingPlugin)
             createExtension(project)
         }
         project.ext.DockerBuildTask = DockerBuildTask.class
@@ -29,18 +27,6 @@ class DockerPlugin implements Plugin<Project> {
     private static void createExtension(Project project) {
         project.extensions.create ('docker', DockerExtension)
     }
-
-    /*private static void addConfiguration(Project project) {
-        String configName = 'docker'
-        if (project.configurations.findByName(configName) == null) {
-            logger.info "create configuration ${configName}"
-            project.configurations.create(configName) {
-                visible = false
-                transitive = true
-                extendsFrom = []
-            }
-        }
-    }*/
 
     private static void checkVersion() {
         String version = '6.4'
