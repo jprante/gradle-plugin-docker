@@ -3,38 +3,47 @@ package org.xbib.gradle.plugin.docker
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.Optional
 
 class DockerBuildTask extends Exec {
-
-    @Delegate
-    @Nested
-    DockerExtension dockerExtension
 
     @InputDirectory
     File basePath = new File('.')
 
     @Input
-    @Optional
     List<String> buildArgs = []
 
     @Input
-    @Optional
     List<String> instructions = []
 
-    @Input
     @Optional
+    @Input
     String baseImage
 
-    @Input
     @Optional
+    @Input
     String maintainer
+
+    @Input
+    boolean enabled = true
+
+    @Input
+    String executableName = 'docker'
+
+    @Optional
+    @Input
+    String registry
+
+    @Input
+    String imageName
+
+    @Optional
+    @Input
+    String tag
 
     private Dockerfile dockerfile
 
     DockerBuildTask() {
-        this.dockerExtension = project.extensions.findByName('docker') as DockerExtension
         File file = new File(project.buildDir, 'docker-' + name)
         if (!file.exists()) {
             file.mkdirs()

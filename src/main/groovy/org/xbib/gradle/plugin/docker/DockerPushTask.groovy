@@ -1,16 +1,29 @@
 package org.xbib.gradle.plugin.docker
 
 import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.Nested
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
 
 class DockerPushTask extends Exec {
 
-    @Delegate
-    @Nested
-    DockerExtension dockerExtension
+    @Input
+    boolean enabled = true
+
+    @Input
+    String executableName = 'docker'
+
+    @Optional
+    @Input
+    String registry
+
+    @Input
+    String imageName
+
+    @Optional
+    @Input
+    String tag
 
     DockerPushTask() {
-        this.dockerExtension = project.extensions.findByName('docker') as DockerExtension
     }
 
     @Override

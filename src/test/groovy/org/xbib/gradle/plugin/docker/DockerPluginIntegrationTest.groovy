@@ -52,7 +52,7 @@ task myDockerBuild(type: DockerBuildTask) {
         BuildResult result = GradleRunner.create()
                 .withProjectDir(projectDir)
                 .withPluginClasspath()
-                .withArguments(":myDockerBuild", "--info", "--stacktrace")
+                .withArguments(":myDockerBuild", "--info", "--stacktrace", "--warning-mode=all")
                 .forwardOutput()
                 .build()
         assertEquals(TaskOutcome.SUCCESS, result.task(":myDockerBuild").getOutcome())

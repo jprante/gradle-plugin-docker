@@ -18,14 +18,9 @@ class DockerPlugin implements Plugin<Project> {
         logger.info "Docker plugin says hello"
         project.with {
             plugins.apply(BasePlugin)
-            createExtension(project)
         }
         project.ext.DockerBuildTask = DockerBuildTask.class
         project.ext.DockerPushTask = DockerPushTask.class
-    }
-
-    private static void createExtension(Project project) {
-        project.extensions.create ('docker', DockerExtension)
     }
 
     private static void checkVersion() {
